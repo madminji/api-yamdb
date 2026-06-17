@@ -1,34 +1,54 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+MAX_LENGTH = 256
+NAME_LENGTH = 30
+
 
 class User(AbstractUser):
-    USER = 'user'
-    MODERATOR = 'moderator'
-    ADMIN = 'admin'
+    class Role(models.TextChoices):
+        USER = 'user', 'User'
+        MODERATOR = 'moderator', 'Moderator'
+        ADMIN = 'admin', 'Admin'
 
-    ROLE_CHOICES = (
-        (USER, 'User'),
-        (MODERATOR, 'Moderator'),
-        (ADMIN, 'Admin'),
+    email = models.EmailField(
+        unique=True,
+        max_length=254,
+        verbose_name='Email',
     )
-    email = models.EmailField(unique=True)
-    bio = models.TextField(blank=True)
+    bio = models.TextField(
+        blank=True,
+        verbose_name='Биография',
+    )
     role = models.CharField(
         max_length=20,
-        choices=ROLE_CHOICES,
-        default=USER,
+        choices=Role.choices,
+        default=Role.USER,
+        verbose_name='Роль',
     )
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
 
     @property
     def is_admin(self):
-        return self.role == self.ADMIN or self.is_superuser
+        return (
+                self.role == self.Role.ADMIN
+                or self.is_superuser
+                or self.is_staff
+        )
 
     @property
     def is_moderator(self):
         return self.role == self.MODERATOR
-MAX_LENGTH = 256
-NAME_LENGTH = 30
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ['username']
+
+    def __str__(self):
+        return self.username
 
 
 class NameSlugModel(models.Model):
