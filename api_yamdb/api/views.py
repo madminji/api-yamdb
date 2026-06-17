@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -8,8 +9,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken, Token
-from reviews.models import User
 
+from reviews.models import User
 from .serializers import SignUpSerializer, TokenSerializer
 
 
@@ -31,7 +32,7 @@ def signup(request):
     send_mail(
         subject='Код подтверждения YaMDb',
         message=f'Ваш код подтверждения: {confirmation_code}',
-        from_email='yamdb@yamdb.fake',
+        from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
     )
     return Response(serializer.validated_data, status=status.HTTP_200_OK)

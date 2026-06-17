@@ -1,13 +1,14 @@
 from django.contrib.auth.validators import ASCIIUsernameValidator
+from django.conf import settings
 from rest_framework import serializers
 
 from reviews.models import User
 
 
 class SignUpSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=254)
+    email = serializers.EmailField(max_length=settings.EMAIL_MAX_LENGTH)
     username = serializers.CharField(
-        max_length=150,
+        max_length=settings.USERNAME_MAX_LENGTH,
         validators=[ASCIIUsernameValidator()]
     )
 
@@ -32,7 +33,7 @@ class SignUpSerializer(serializers.Serializer):
 
 class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(
-        max_length=150,
+        max_length=settings.USERNAME_MAX_LENGTH,
         validators=[ASCIIUsernameValidator()]
     )
     confirmation_code = serializers.CharField(write_only=True)

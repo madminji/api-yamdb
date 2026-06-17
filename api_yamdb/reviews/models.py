@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.conf import settings
 
 MAX_LENGTH = 256
 NAME_LENGTH = 30
@@ -13,7 +14,7 @@ class User(AbstractUser):
 
     email = models.EmailField(
         unique=True,
-        max_length=254,
+        max_length=settings.EMAIL_MAX_LENGTH,
         verbose_name='Email',
     )
     bio = models.TextField(
@@ -21,7 +22,7 @@ class User(AbstractUser):
         verbose_name='Биография',
     )
     role = models.CharField(
-        max_length=20,
+        max_length=NAME_LENGTH,
         choices=Role.choices,
         default=Role.USER,
         verbose_name='Роль',
