@@ -1,7 +1,55 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.conf import settings
 
 MAX_LENGTH = 256
 NAME_LENGTH = 30
+
+
+class User(AbstractUser):
+    class Role(models.TextChoices):
+        USER = 'user', 'User'
+        MODERATOR = 'moderator', 'Moderator'
+        ADMIN = 'admin', 'Admin'
+
+    email = models.EmailField(
+        unique=True,
+        max_length=settings.EMAIL_MAX_LENGTH,
+        verbose_name='Email',
+    )
+    bio = models.TextField(
+        blank=True,
+        verbose_name='Биография',
+    )
+    role = models.CharField(
+        max_length=NAME_LENGTH,
+        choices=Role.choices,
+        default=Role.USER,
+        verbose_name='Роль',
+    )
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
+
+    @property
+    def is_admin(self):
+        return (
+            self.role == self.Role.ADMIN
+            or self.is_superuser
+            or self.is_staff
+        )
+
+    @property
+    def is_moderator(self):
+        return self.role == self.Role.MODERATOR
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ['username']
+
+    def __str__(self):
+        return self.username
 
 
 class NameSlugModel(models.Model):
@@ -36,7 +84,7 @@ class Title(models.Model):
     description = models.TextField(
         verbose_name='Описание',
         blank=True,
-        null=True,)
+        null=True, )
     year = models.IntegerField(verbose_name='Год выхода')
     category = models.ForeignKey(
         Category,
