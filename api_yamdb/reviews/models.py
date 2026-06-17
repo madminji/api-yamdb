@@ -17,32 +17,36 @@ class NameSlugModel(models.Model):
         return self.name[:NAME_LENGTH]
 
 
-class Categories(NameSlugModel):
+class Category(NameSlugModel):
     class Meta:
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
 
-class Genres(NameSlugModel):
+class Genre(NameSlugModel):
     class Meta:
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
 
-class Titles(models.Model):
+class Title(models.Model):
     name = models.CharField(
         max_length=MAX_LENGTH,
         verbose_name='Наименование')
+    description = models.TextField(
+        verbose_name='Описание',
+        blank=True,
+        null=True,)
     year = models.IntegerField(verbose_name='Год выхода')
     category = models.ForeignKey(
-        Categories,
+        Category,
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
         verbose_name='Категория'
     )
     genre = models.ManyToManyField(
-        Genres,
+        Genre,
         verbose_name='Жанр'
     )
 

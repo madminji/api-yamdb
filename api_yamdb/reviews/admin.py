@@ -1,10 +1,9 @@
 from django.contrib import admin
 
-from reviews.models import Categories, Genres, Titles
+from reviews.models import Category, Genre, Title
 
 
-@admin.register(Categories)
-class CategoriesAdmin(admin.ModelAdmin):
+class NameSlugAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'slug'
@@ -23,28 +22,18 @@ class CategoriesAdmin(admin.ModelAdmin):
     list_display_links = ('name',)
 
 
-@admin.register(Genres)
-class GenresAdmin(admin.ModelAdmin):
-    list_display = (
-        'name',
-        'slug'
-    )
-    list_editable = (
-        'slug',
-    )
-    search_fields = (
-        'name',
-        'slug'
-    )
-    list_filter = (
-        'name',
-        'slug'
-    )
-    list_display_links = ('name',)
+@admin.register(Category)
+class CategoryAdmin(NameSlugAdmin):
+    ...
 
 
-@admin.register(Titles)
-class TitlesAdmin(admin.ModelAdmin):
+@admin.register(Genre)
+class GenreAdmin(NameSlugAdmin):
+    ...
+
+
+@admin.register(Title)
+class TitleAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'year',
