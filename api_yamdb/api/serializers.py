@@ -4,7 +4,6 @@ from rest_framework import serializers
 from reviews.models import User
 
 
-
 class SignUpSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=254)
     username = serializers.CharField(

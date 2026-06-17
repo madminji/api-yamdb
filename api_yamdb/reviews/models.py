@@ -33,9 +33,9 @@ class User(AbstractUser):
     @property
     def is_admin(self):
         return (
-                self.role == self.Role.ADMIN
-                or self.is_superuser
-                or self.is_staff
+            self.role == self.Role.ADMIN
+            or self.is_superuser
+            or self.is_staff
         )
 
     @property
@@ -83,7 +83,7 @@ class Title(models.Model):
     description = models.TextField(
         verbose_name='Описание',
         blank=True,
-        null=True,)
+        null=True, )
     year = models.IntegerField(verbose_name='Год выхода')
     category = models.ForeignKey(
         Category,
