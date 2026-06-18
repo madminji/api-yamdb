@@ -2,7 +2,7 @@ from django.contrib.auth.validators import ASCIIUsernameValidator
 from django.conf import settings
 from rest_framework import serializers
 
-from reviews.models import User
+from reviews.models import Category, Genre, Title, User
 
 
 class SignUpSerializer(serializers.Serializer):
@@ -37,3 +37,27 @@ class TokenSerializer(serializers.Serializer):
         validators=[ASCIIUsernameValidator()]
     )
     confirmation_code = serializers.CharField(write_only=True)
+
+
+class CatGenSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = '__all__'
+
+
+class CategorySerializer(serializers.ModelSerializer):
+
+    class Meta(CatGenSerializer.Meta):
+        model = Category
+
+
+class GenreSerializer(serializers.ModelSerializer):
+
+    class Meta(CatGenSerializer.Meta):
+        model = Genre
+
+
+class TitleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = '__all__'
+        model = Title

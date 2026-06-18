@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 
 MAX_LENGTH = 256
+MAX_LENGTH_SLUG = 50
 NAME_LENGTH = 30
 
 
@@ -55,7 +56,8 @@ class User(AbstractUser):
 class NameSlugModel(models.Model):
     name = models.CharField(max_length=MAX_LENGTH,
                             verbose_name='Наименование')
-    slug = models.SlugField(unique=True,
+    slug = models.SlugField(max_length=MAX_LENGTH_SLUG,
+                            unique=True,
                             verbose_name='Идентификатор')
 
     class Meta:

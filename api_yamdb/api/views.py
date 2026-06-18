@@ -3,15 +3,17 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken, Token
 
-from reviews.models import User
+from .permissions import ReadForAllWriteForAdmin
+from .serializers import CategorySerializer, GenreSerializer, TitleSerializer
 from .serializers import SignUpSerializer, TokenSerializer
+from reviews.models import Category, Genre, Title, User
 
 
 class ConfirmationToken(Token):
@@ -57,3 +59,28 @@ def get_token(request):
         )
     access_token = AccessToken.for_user(user)
     return Response({'token': str(access_token)}, status=status.HTTP_200_OK)
+
+
+class CatGenViewSet(mixins.ListModelMixin,
+                    mixins.CreateModelMixin,
+                    mixins.DestroyModelMixin,
+                    viewsets.GenericViewSet):
+    permission_classes = [ReadForAllWriteForAdmin]
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+    lookup_field = 'slug'
+
+
+class CategoryViewSet(CatGenViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+
+class GenreViewSet(CatGenViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+
+
+class TitleViewSet(CatGenViewSet):
+    queryset = Title.objects.all()
+    serializer_class = TitleSerializer
+    filter_backends = (filters.SearchFilter,)
