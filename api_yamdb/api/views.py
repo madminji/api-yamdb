@@ -3,19 +3,24 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework import filters, mixins, status, viewsets
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken, Token
 
-from .permissions import IsAdminOrReadOnly, IsAdmin
-from .serializers import CategorySerializer, GenreSerializer, TitleSerializer, MeSerializer
-from .serializers import SignUpSerializer, TokenSerializer, UserSerializer
 from reviews.models import Category, Genre, Title, User
+from .permissions import IsAdmin, IsAdminOrReadOnly
+from .serializers import (
+    CategorySerializer,
+    GenreSerializer,
+    MeSerializer,
+    SignUpSerializer,
+    TitleSerializer,
+    TokenSerializer,
+    UserSerializer,
+)
 
 
 class ConfirmationToken(Token):
