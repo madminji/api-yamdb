@@ -86,7 +86,7 @@ class Title(models.Model):
     description = models.TextField(
         verbose_name='Описание',
         blank=True,
-        null=True, )
+        default='')
     year = models.IntegerField(verbose_name='Год выхода')
     category = models.ForeignKey(
         Category,

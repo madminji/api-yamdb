@@ -1,6 +1,7 @@
 import re
 
 from django.conf import settings
+from django.utils import timezone
 from rest_framework import serializers
 
 from reviews.models import Category, Genre, Title, User
@@ -68,7 +69,7 @@ class MeSerializer(UserSerializer):
 
 class CatGenSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = '__all__'
+        fields = ('name', 'slug')
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -81,7 +82,42 @@ class GenreSerializer(serializers.ModelSerializer):
         model = Genre
 
 
-class TitleSerializer(serializers.ModelSerializer):
+class TitleReadSerializer(serializers.ModelSerializer):
+    category = CategorySerializer()
+    genre = GenreSerializer(many=True)
+    # Заглушка пока нет отзывов
+    # rating = serializers.IntegerField(read_only=True)
+    rating = serializers.SerializerMethodField()
+
     class Meta:
-        fields = '__all__'
         model = Title
+        fields = ('id', 'name', 'description', 'year', 'genre', 'category',
+                  'rating')
+
+    # Заглушка пока нет отзывов
+    def get_rating(self, obj):
+        return None
+
+
+class TitleWriteSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Category.objects.all()
+    )
+    genre = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Genre.objects.all(),
+        many=True,
+        allow_empty=False
+    )
+
+    def validate_year(self, value):
+        if value > timezone.now().year:
+            raise serializers.ValidationError(
+                'Год выпуска не может быть больше текущего.'
+            )
+        return value
+
+    class Meta:
+        model = Title
+        fields = ('id', 'name', 'description', 'year', 'genre', 'category')
