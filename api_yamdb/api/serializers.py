@@ -17,16 +17,21 @@ class SignUpSerializer(serializers.Serializer):
     def validate(self, data):
         username = data.get('username')
         email = data.get('email')
+
         user_by_username = User.objects.filter(username=username).first()
         user_by_email = User.objects.filter(email=email).first()
+
+        errors = {}
+
         if user_by_username and user_by_username.email != email:
-            raise serializers.ValidationError(
-                {'username': 'Username уже занят!'}
-            )
+            errors['username'] = 'Username уже занят!'
+
         if user_by_email and user_by_email.username != username:
-            raise serializers.ValidationError(
-                {'email': 'Email уже занят!'}
-            )
+            errors['email'] = 'Email уже занят!'
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
         return data
 
 
