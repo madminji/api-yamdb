@@ -5,13 +5,14 @@ from django.db import models
 MAX_LENGTH = 256
 MAX_LENGTH_SLUG = 50
 NAME_LENGTH = 30
+ROLE_MAX_LENGTH = 20
 
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        USER = 'user', 'User'
-        MODERATOR = 'moderator', 'Moderator'
-        ADMIN = 'admin', 'Admin'
+        USER = 'user', 'Пользователь'
+        MODERATOR = 'moderator', 'Модератор'
+        ADMIN = 'admin', 'Администратор'
 
     email = models.EmailField(
         unique=True,
@@ -23,7 +24,7 @@ class User(AbstractUser):
         verbose_name='Биография',
     )
     role = models.CharField(
-        max_length=NAME_LENGTH,
+        max_length=ROLE_MAX_LENGTH,
         choices=Role.choices,
         default=Role.USER,
         verbose_name='Роль',
@@ -37,7 +38,6 @@ class User(AbstractUser):
         return (
             self.role == self.Role.ADMIN
             or self.is_superuser
-            or self.is_staff
         )
 
     @property
