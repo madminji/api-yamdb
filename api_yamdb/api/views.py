@@ -34,8 +34,8 @@ def signup(request):
     )
     confirmation_code = default_token_generator.make_token(user)
     send_mail(
-        subject='Код подтверждения YaMDb',
-        message=f'Ваш код подтверждения: {confirmation_code}',
+        subject='YaMDb confirmation code',
+        message=f'Confirmation code: {confirmation_code}',
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
     )
