@@ -1,20 +1,9 @@
-import re
-
 from django.conf import settings
 from django.utils import timezone
 from rest_framework import serializers
 
 from reviews.models import Category, Genre, Title, User
-
-USERNAME_REGEX = re.compile(r'^[\w.@+-]+\Z', re.ASCII)
-
-
-def validate_not_me(value):
-    if value.lower() == 'me':
-        raise serializers.ValidationError(
-            "Использование имени 'me' запрещено."
-        )
-    return value
+from .validators import USERNAME_REGEX, validate_username_not_me
 
 
 class SignUpSerializer(serializers.Serializer):
@@ -22,10 +11,8 @@ class SignUpSerializer(serializers.Serializer):
     username = serializers.RegexField(
         regex=USERNAME_REGEX,
         max_length=settings.USERNAME_MAX_LENGTH,
+        validators=(validate_username_not_me,),
     )
-
-    def validate_username(self, value):
-        return validate_not_me(value)
 
     def validate(self, data):
         username = data.get('username')
@@ -60,7 +47,7 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def validate_username(self, value):
-        return validate_not_me(value)
+        return validate_username_not_me(value)
 
 
 class MeSerializer(UserSerializer):

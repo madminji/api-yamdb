@@ -1,6 +1,33 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Genre, Title, User
+
+
+@admin.register(User)
+class UserAdmin(BaseUserAdmin):
+    list_display = (
+        'username',
+        'email',
+        'role',
+        'is_staff',
+        'is_superuser',
+    )
+    list_filter = (
+        'role',
+        'is_staff',
+        'is_superuser',
+    )
+    search_fields = (
+        'username',
+        'email',
+    )
+    fieldsets = BaseUserAdmin.fieldsets + (
+        ('Дополнительно', {'fields': ('bio', 'role')}),
+    )
+    add_fieldsets = BaseUserAdmin.add_fieldsets + (
+        ('Дополнительно', {'fields': ('email', 'bio', 'role')}),
+    )
 
 
 class NameSlugAdmin(admin.ModelAdmin):

@@ -1,6 +1,5 @@
-from datetime import timedelta
-
 from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
@@ -8,8 +7,7 @@ from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.tokens import AccessToken, Token
+from rest_framework_simplejwt.tokens import AccessToken
 
 from reviews.models import Category, Genre, Title, User
 from .permissions import IsAdmin, IsAdminOrReadOnly
@@ -25,11 +23,6 @@ from .serializers import (
 )
 
 
-class ConfirmationToken(Token):
-    token_type = 'confirmation'
-    lifetime = timedelta(days=1)
-
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
@@ -39,7 +32,7 @@ def signup(request):
         username=serializer.validated_data['username'],
         defaults={'email': serializer.validated_data['email']}
     )
-    confirmation_code = str(ConfirmationToken.for_user(user))
+    confirmation_code = default_token_generator.make_token(user)
     send_mail(
         subject='Код подтверждения YaMDb',
         message=f'Ваш код подтверждения: {confirmation_code}',
@@ -57,11 +50,7 @@ def get_token(request):
     username = serializer.validated_data['username']
     confirmation_code = serializer.validated_data['confirmation_code']
     user = get_object_or_404(User, username=username)
-    try:
-        token = ConfirmationToken(confirmation_code)
-        if token['user_id'] != user.pk:
-            raise TokenError('user_id не совпадает')
-    except TokenError:
+    if not default_token_generator.check_token(user, confirmation_code):
         return Response(
             {'confirmation_code': 'Неверный или просроченный код.'},
             status=status.HTTP_400_BAD_REQUEST,
