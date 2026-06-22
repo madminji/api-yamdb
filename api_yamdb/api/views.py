@@ -132,10 +132,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        # Заглушка пока нет отзывов
-        # queryset = Title.objects.annotate(rating=Avg('reviews__score'))
-        queryset = Title.objects.all()
-
+        queryset = Title.objects.annotate(rating=Avg('reviews__score'))
         genre = self.request.query_params.get('genre')
         category = self.request.query_params.get('category')
         year = self.request.query_params.get('year')

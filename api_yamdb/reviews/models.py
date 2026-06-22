@@ -107,3 +107,32 @@ class Title(models.Model):
 
     def __str__(self):
         return self.name[:NAME_LENGTH]
+
+
+# Заглушка для проверки импорта Review из csv
+class Review(models.Model):
+    title = models.ForeignKey(Title,
+                              on_delete=models.CASCADE,
+                              related_name='reviews')
+    text = models.TextField()
+    author = models.ForeignKey(User,
+                               on_delete=models.CASCADE,
+                               related_name='reviews')
+    score = models.PositiveSmallIntegerField()
+    pub_date = models.DateTimeField(auto_now_add=True)
+
+
+# Заглушка для проверки импорта Comment из csv
+class Comment(models.Model):
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    text = models.TextField()
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    pub_date = models.DateTimeField(auto_now_add=True)
