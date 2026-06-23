@@ -177,8 +177,6 @@ class TitleViewSet(viewsets.ModelViewSet):
         return self.update(request, *args, **kwargs)
 
 
-# ========= ВАША ЧАСТЬ (третий разработчик) =========
-
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (
