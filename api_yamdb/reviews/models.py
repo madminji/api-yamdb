@@ -100,7 +100,6 @@ class Title(models.Model):
         Genre,
         verbose_name='Жанр'
     )
-    # Поле rating УДАЛЕНО
 
     class Meta:
         default_related_name = 'titles'
