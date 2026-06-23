@@ -100,12 +100,7 @@ class Title(models.Model):
         Genre,
         verbose_name='Жанр'
     )
-    rating = models.IntegerField(
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name='Рейтинг'
-    )
+    # Поле rating УДАЛЕНО
 
     class Meta:
         default_related_name = 'titles'

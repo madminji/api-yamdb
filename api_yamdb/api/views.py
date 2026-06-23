@@ -130,7 +130,6 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        # Убрана аннотация rating — поле теперь хранится в модели
         queryset = Title.objects.all()
         genre = self.request.query_params.get('genre')
         category = self.request.query_params.get('category')
@@ -146,6 +145,7 @@ class TitleViewSet(viewsets.ModelViewSet):
         if name:
             queryset = queryset.filter(name=name)
 
+        queryset = queryset.annotate(rating=Avg('reviews__score'))
         return queryset
 
     def get_serializer_class(self):
@@ -183,7 +183,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         IsAuthenticatedOrReadOnly,
         IsAuthorOrModeratorOrAdmin,
     )
-    # Отключаем PUT – только PATCH разрешён
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
@@ -195,25 +194,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title_id = self.kwargs.get('title_id')
         title = get_object_or_404(Title, id=title_id)
         serializer.save(author=self.request.user, title=title)
-        self._update_rating(title)
-
-    def perform_update(self, serializer):
-        instance = serializer.save()
-        self._update_rating(instance.title)
-
-    def perform_destroy(self, instance):
-        title = instance.title
-        instance.delete()
-        self._update_rating(title)
-
-    def _update_rating(self, title):
-        reviews = title.reviews.all()
-        if reviews.exists():
-            avg = sum(r.score for r in reviews) / reviews.count()
-            title.rating = round(avg)
-        else:
-            title.rating = None
-        title.save(update_fields=['rating'])
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -222,7 +202,6 @@ class CommentViewSet(viewsets.ModelViewSet):
         IsAuthenticatedOrReadOnly,
         IsAuthorOrModeratorOrAdmin,
     )
-    # Отключаем PUT – только PATCH разрешён
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
