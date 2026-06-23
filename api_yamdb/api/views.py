@@ -9,8 +9,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
-from reviews.models import Category, Genre, Title, User
-from .permissions import IsAdmin, IsAdminOrReadOnly
+from reviews.models import Category, Genre, Title, User, Review, Comment
+from .permissions import (
+    IsAdmin,
+    IsAdminOrReadOnly,
+    IsAuthorOrModeratorOrAdmin,
+    IsAuthenticatedOrReadOnly,
+)
 from .serializers import (
     CategorySerializer,
     GenreSerializer,
@@ -20,6 +25,8 @@ from .serializers import (
     TitleReadSerializer,
     TokenSerializer,
     UserSerializer,
+    ReviewSerializer,
+    CommentSerializer,
 )
 
 
@@ -30,7 +37,7 @@ def signup(request):
     serializer.is_valid(raise_exception=True)
     user, _ = User.objects.get_or_create(
         username=serializer.validated_data['username'],
-        defaults={'email': serializer.validated_data['email']}
+        defaults={'email': serializer.validated_data['email']},
     )
     confirmation_code = default_token_generator.make_token(user)
     send_mail(
@@ -87,17 +94,19 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(
             request.user,
             data=request.data,
-            partial=True
+            partial=True,
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
 
 
-class CatGenViewSet(mixins.ListModelMixin,
-                    mixins.CreateModelMixin,
-                    mixins.DestroyModelMixin,
-                    viewsets.GenericViewSet):
+class CatGenViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     permission_classes = [IsAdminOrReadOnly]
     http_method_names = ['get', 'post', 'delete', 'head', 'options']
     filter_backends = (filters.SearchFilter,)
@@ -121,7 +130,8 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        queryset = Title.objects.annotate(rating=Avg('reviews__score'))
+        # Убрана аннотация rating — поле теперь хранится в модели
+        queryset = Title.objects.all()
         genre = self.request.query_params.get('genre')
         category = self.request.query_params.get('category')
         year = self.request.query_params.get('year')
@@ -147,13 +157,8 @@ class TitleViewSet(viewsets.ModelViewSet):
         serializer = TitleWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         title = serializer.save()
-
         read_serializer = TitleReadSerializer(title)
-
-        return Response(
-            read_serializer.data,
-            status=status.HTTP_201_CREATED
-        )
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -161,7 +166,7 @@ class TitleViewSet(viewsets.ModelViewSet):
         serializer = TitleWriteSerializer(
             instance,
             data=request.data,
-            partial=partial
+            partial=partial,
         )
         serializer.is_valid(raise_exception=True)
         title = serializer.save()
@@ -170,3 +175,66 @@ class TitleViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
+
+
+# ========= ВАША ЧАСТЬ (третий разработчик) =========
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    permission_classes = (
+        IsAuthenticatedOrReadOnly,
+        IsAuthorOrModeratorOrAdmin,
+    )
+    # Отключаем PUT – только PATCH разрешён
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        title_id = self.kwargs.get('title_id')
+        title = get_object_or_404(Title, id=title_id)
+        return title.reviews.all()
+
+    def perform_create(self, serializer):
+        title_id = self.kwargs.get('title_id')
+        title = get_object_or_404(Title, id=title_id)
+        serializer.save(author=self.request.user, title=title)
+        self._update_rating(title)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        self._update_rating(instance.title)
+
+    def perform_destroy(self, instance):
+        title = instance.title
+        instance.delete()
+        self._update_rating(title)
+
+    def _update_rating(self, title):
+        reviews = title.reviews.all()
+        if reviews.exists():
+            avg = sum(r.score for r in reviews) / reviews.count()
+            title.rating = round(avg)
+        else:
+            title.rating = None
+        title.save(update_fields=['rating'])
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = (
+        IsAuthenticatedOrReadOnly,
+        IsAuthorOrModeratorOrAdmin,
+    )
+    # Отключаем PUT – только PATCH разрешён
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        title_id = self.kwargs.get('title_id')
+        review_id = self.kwargs.get('review_id')
+        review = get_object_or_404(Review, id=review_id, title_id=title_id)
+        return review.comments.all()
+
+    def perform_create(self, serializer):
+        title_id = self.kwargs.get('title_id')
+        review_id = self.kwargs.get('review_id')
+        review = get_object_or_404(Review, id=review_id, title_id=title_id)
+        serializer.save(author=self.request.user, review=review)

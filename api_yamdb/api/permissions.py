@@ -21,7 +21,19 @@ class IsAdminOrReadOnly(BasePermission):
         )
 
 
-class IsAuthorModeratorAdminOrReadOnly(BasePermission):
+class IsAuthenticatedOrReadOnly(BasePermission):
+    """
+    Чтение доступно всем, остальные методы — только аутентифицированным.
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.method in SAFE_METHODS
+            or request.user.is_authenticated
+        )
+
+
+class IsAuthorOrModeratorOrAdmin(BasePermission):
     """
     Чтение доступно всем.
     Изменение/удаление — автору, модератору или администратору.

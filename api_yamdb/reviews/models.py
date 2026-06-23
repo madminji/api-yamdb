@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+
 MAX_LENGTH = 256
 MAX_LENGTH_SLUG = 50
 NAME_LENGTH = 30
@@ -99,6 +100,12 @@ class Title(models.Model):
         Genre,
         verbose_name='Жанр'
     )
+    rating = models.IntegerField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name='Рейтинг'
+    )
 
     class Meta:
         default_related_name = 'titles'
@@ -109,30 +116,61 @@ class Title(models.Model):
         return self.name[:NAME_LENGTH]
 
 
-# Заглушка для проверки импорта Review из csv
 class Review(models.Model):
-    title = models.ForeignKey(Title,
-                              on_delete=models.CASCADE,
-                              related_name='reviews')
-    text = models.TextField()
-    author = models.ForeignKey(User,
-                               on_delete=models.CASCADE,
-                               related_name='reviews')
-    score = models.PositiveSmallIntegerField()
-    pub_date = models.DateTimeField(auto_now_add=True)
+    title = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Произведение'
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Автор'
+    )
+    text = models.TextField('Текст отзыва')
+    score = models.PositiveSmallIntegerField(
+        'Оценка',
+        choices=[(i, str(i)) for i in range(1, 11)]  # от 1 до 10
+    )
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['title', 'author'],
+                name='unique_review'
+            )
+        ]
+        ordering = ['-pub_date']
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
+
+    def __str__(self):
+        return f'{self.author} - {self.title} - {self.score}'
 
 
-# Заглушка для проверки импорта Comment из csv
 class Comment(models.Model):
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
-        related_name='comments'
+        related_name='comments',
+        verbose_name='Отзыв'
     )
-    text = models.TextField()
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='comments'
+        related_name='comments',
+        verbose_name='Автор'
     )
-    pub_date = models.DateTimeField(auto_now_add=True)
+    text = models.TextField('Текст комментария')
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+
+    class Meta:
+        ordering = ['pub_date']
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self):
+        return f'{self.author} - {self.review}'

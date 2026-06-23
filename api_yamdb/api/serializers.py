@@ -2,7 +2,7 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework import serializers
 
-from reviews.models import Category, Genre, Title, User
+from reviews.models import Category, Genre, Title, User, Review, Comment
 from .validators import USERNAME_REGEX, validate_username_not_me
 
 
@@ -107,3 +107,46 @@ class TitleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = ('id', 'name', 'description', 'year', 'genre', 'category')
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True
+    )
+    title = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ('id', 'title', 'text', 'author', 'score', 'pub_date')
+        read_only_fields = ('title', 'author', 'pub_date')
+
+    def validate_score(self, value):
+        if not (1 <= value <= 10):
+            raise serializers.ValidationError('Оценка должна быть от 1 до 10.')
+        return value
+
+    def validate(self, data):
+        request = self.context.get('request')
+        if request and request.method == 'POST':
+            title_id = self.context.get('view').kwargs.get('title_id')
+            if Review.objects.filter(
+                author=request.user,
+                title_id=title_id
+            ).exists():
+                raise serializers.ValidationError(
+                    'Вы уже оставили отзыв.'
+                )
+        return data
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True
+    )
+    review = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'review', 'text', 'author', 'pub_date')
+        read_only_fields = ('review', 'author', 'pub_date')
