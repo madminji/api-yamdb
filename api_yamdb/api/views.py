@@ -130,7 +130,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        queryset = Title.objects.all()
+        queryset = Title.objects.annotate(rating=Avg('reviews__score'))
         genre = self.request.query_params.get('genre')
         category = self.request.query_params.get('category')
         year = self.request.query_params.get('year')
@@ -145,7 +145,6 @@ class TitleViewSet(viewsets.ModelViewSet):
         if name:
             queryset = queryset.filter(name=name)
 
-        queryset = queryset.annotate(rating=Avg('reviews__score'))
         return queryset
 
     def get_serializer_class(self):
@@ -157,8 +156,13 @@ class TitleViewSet(viewsets.ModelViewSet):
         serializer = TitleWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         title = serializer.save()
+
         read_serializer = TitleReadSerializer(title)
-        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(
+            read_serializer.data,
+            status=status.HTTP_201_CREATED
+        )
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -166,7 +170,7 @@ class TitleViewSet(viewsets.ModelViewSet):
         serializer = TitleWriteSerializer(
             instance,
             data=request.data,
-            partial=partial,
+            partial=partial
         )
         serializer.is_valid(raise_exception=True)
         title = serializer.save()
