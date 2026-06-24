@@ -113,12 +113,11 @@ class ReviewSerializer(serializers.ModelSerializer):
         slug_field='username',
         read_only=True
     )
-    title = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Review
-        fields = ('id', 'title', 'text', 'author', 'score', 'pub_date')
-        read_only_fields = ('title', 'author', 'pub_date')
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        read_only_fields = ('author', 'pub_date')
 
     def validate_score(self, value):
         if not (1 <= value <= 10):
@@ -144,9 +143,8 @@ class CommentSerializer(serializers.ModelSerializer):
         slug_field='username',
         read_only=True
     )
-    review = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Comment
-        fields = ('id', 'review', 'text', 'author', 'pub_date')
-        read_only_fields = ('review', 'author', 'pub_date')
+        fields = ('id', 'text', 'author', 'pub_date')
+        read_only_fields = ('author', 'pub_date')

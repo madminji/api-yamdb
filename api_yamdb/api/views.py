@@ -5,7 +5,11 @@ from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import (
+    AllowAny,
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly
+)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
@@ -13,8 +17,7 @@ from reviews.models import Category, Genre, Title, User, Review, Comment
 from .permissions import (
     IsAdmin,
     IsAdminOrReadOnly,
-    IsAuthorOrModeratorOrAdmin,
-    IsAuthenticatedOrReadOnly,
+    IsAuthorModeratorAdminOrReadOnly,
 )
 from .serializers import (
     CategorySerializer,
@@ -185,7 +188,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
-        IsAuthorOrModeratorOrAdmin,
+        IsAuthorModeratorAdminOrReadOnly,
     )
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
@@ -204,7 +207,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
-        IsAuthorOrModeratorOrAdmin,
+        IsAuthorModeratorAdminOrReadOnly,
     )
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
