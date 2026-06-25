@@ -13,7 +13,7 @@ from rest_framework.permissions import (
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
-from reviews.models import Category, Genre, Title, User, Review, Comment
+from reviews.models import Category, Genre, Title, User, Review
 from .permissions import (
     IsAdmin,
     IsAdminOrReadOnly,
