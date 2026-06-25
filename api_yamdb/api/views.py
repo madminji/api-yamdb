@@ -159,7 +159,7 @@ class TitleViewSet(viewsets.ModelViewSet):
         serializer = TitleWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         title = serializer.save()
-
+        title = self.get_queryset().get(pk=title.pk)
         read_serializer = TitleReadSerializer(title)
 
         return Response(
@@ -177,6 +177,7 @@ class TitleViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         title = serializer.save()
+        title = self.get_queryset().get(pk=title.pk)
         return Response(TitleReadSerializer(title).data)
 
     def partial_update(self, request, *args, **kwargs):
