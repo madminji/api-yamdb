@@ -1,5 +1,5 @@
+from datetime import timedelta
 from pathlib import Path
-
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,6 +21,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_filters',
+    'rest_framework',
+    'reviews.apps.ReviewsConfig',
+    'api.apps.ApiConfig',
 ]
 
 MIDDLEWARE = [
@@ -32,6 +36,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+AUTH_USER_MODEL = 'reviews.User'
 
 ROOT_URLCONF = 'api_yamdb.urls'
 
@@ -82,10 +88,27 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 10,
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
 
 # Internationalization
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru-RU'
 
 TIME_ZONE = 'UTC'
 
@@ -101,3 +124,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = ((BASE_DIR / 'static/'),)
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
+DEFAULT_FROM_EMAIL = 'yamdb@yamdb.fake'
+
+EMAIL_MAX_LENGTH = 254
+USERNAME_MAX_LENGTH = 150
