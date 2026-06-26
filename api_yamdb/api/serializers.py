@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db.models import Avg
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -61,7 +62,7 @@ class MeSerializer(UserSerializer):
 
 class CatGenSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = ('name', 'slug')
+        exclude = ('id',)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -97,12 +98,14 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         allow_empty=False
     )
 
-    def validate_year(self, value):
-        if value > timezone.now().year:
-            raise serializers.ValidationError(
-                'Год выпуска не может быть больше текущего.'
-            )
-        return value
+    def to_representation(self, instance):
+        instance = (
+            Title.objects
+            .filter(pk=instance.pk)
+            .annotate(rating=Avg('reviews__score'))
+            .first()
+        )
+        return TitleReadSerializer(instance, context=self.context).data
 
     class Meta:
         model = Title

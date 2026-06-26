@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from .validators import validate_year
+
 
 MAX_LENGTH = 256
 MAX_LENGTH_SLUG = 50
@@ -88,7 +90,9 @@ class Title(models.Model):
         verbose_name='Описание',
         blank=True,
         default='')
-    year = models.IntegerField(verbose_name='Год выхода')
+    year = models.IntegerField(
+        verbose_name='Год выхода',
+        validators=[validate_year],)
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
