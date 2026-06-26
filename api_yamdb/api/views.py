@@ -3,6 +3,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import (
@@ -13,6 +14,7 @@ from rest_framework.permissions import (
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
+from .filters import TitleFilter
 from reviews.models import Category, Genre, Title, User, Review
 from .permissions import (
     IsAdmin,
@@ -129,60 +131,19 @@ class GenreViewSet(CatGenViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TitleFilter
     permission_classes = [IsAdminOrReadOnly]
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
         queryset = Title.objects.annotate(rating=Avg('reviews__score'))
-        genre = self.request.query_params.get('genre')
-        category = self.request.query_params.get('category')
-        year = self.request.query_params.get('year')
-        name = self.request.query_params.get('name')
-
-        if genre:
-            queryset = queryset.filter(genre__slug=genre)
-        if category:
-            queryset = queryset.filter(category__slug=category)
-        if year:
-            queryset = queryset.filter(year=year)
-        if name:
-            queryset = queryset.filter(name=name)
-
         return queryset
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return TitleReadSerializer
         return TitleWriteSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = TitleWriteSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        title = serializer.save()
-        title = self.get_queryset().get(pk=title.pk)
-        read_serializer = TitleReadSerializer(title)
-
-        return Response(
-            read_serializer.data,
-            status=status.HTTP_201_CREATED
-        )
-
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = TitleWriteSerializer(
-            instance,
-            data=request.data,
-            partial=partial
-        )
-        serializer.is_valid(raise_exception=True)
-        title = serializer.save()
-        title = self.get_queryset().get(pk=title.pk)
-        return Response(TitleReadSerializer(title).data)
-
-    def partial_update(self, request, *args, **kwargs):
-        kwargs['partial'] = True
-        return self.update(request, *args, **kwargs)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
