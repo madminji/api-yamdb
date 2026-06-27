@@ -6,6 +6,10 @@ from rest_framework import serializers
 from reviews.models import Category, Genre, Title, User, Review, Comment
 from .validators import USERNAME_REGEX, validate_username_not_me
 
+# Константы для оценки
+MIN_SCORE = 1
+MAX_SCORE = 10
+
 
 class SignUpSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=settings.EMAIL_MAX_LENGTH)
@@ -124,8 +128,10 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ('author', 'pub_date')
 
     def validate_score(self, value):
-        if not (1 <= value <= 10):
-            raise serializers.ValidationError('Оценка должна быть от 1 до 10.')
+        if not (MIN_SCORE <= value <= MAX_SCORE):
+            raise serializers.ValidationError(
+                f'Оценка должна быть от {MIN_SCORE} до {MAX_SCORE}.'
+            )
         return value
 
     def validate(self, data):
@@ -137,7 +143,7 @@ class ReviewSerializer(serializers.ModelSerializer):
                 title_id=title_id
             ).exists():
                 raise serializers.ValidationError(
-                    'Вы уже оставили отзыв.'
+                    'Вы уже оставили отзыв на это произведение.'
                 )
         return data
 
