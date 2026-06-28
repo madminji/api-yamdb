@@ -3,6 +3,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import (
@@ -13,6 +14,7 @@ from rest_framework.permissions import (
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
+from .filters import TitleFilter
 from reviews.models import Category, Genre, Title, User, Review
 from .permissions import (
     IsAdmin,
@@ -57,14 +59,7 @@ def signup(request):
 def get_token(request):
     serializer = TokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    username = serializer.validated_data['username']
-    confirmation_code = serializer.validated_data['confirmation_code']
-    user = get_object_or_404(User, username=username)
-    if not default_token_generator.check_token(user, confirmation_code):
-        return Response(
-            {'confirmation_code': 'Неверный или просроченный код.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    user = serializer.validated_data['user']
     access_token = AccessToken.for_user(user)
     return Response({'token': str(access_token)}, status=status.HTTP_200_OK)
 
@@ -129,60 +124,19 @@ class GenreViewSet(CatGenViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TitleFilter
     permission_classes = [IsAdminOrReadOnly]
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
         queryset = Title.objects.annotate(rating=Avg('reviews__score'))
-        genre = self.request.query_params.get('genre')
-        category = self.request.query_params.get('category')
-        year = self.request.query_params.get('year')
-        name = self.request.query_params.get('name')
-
-        if genre:
-            queryset = queryset.filter(genre__slug=genre)
-        if category:
-            queryset = queryset.filter(category__slug=category)
-        if year:
-            queryset = queryset.filter(year=year)
-        if name:
-            queryset = queryset.filter(name=name)
-
         return queryset
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return TitleReadSerializer
         return TitleWriteSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = TitleWriteSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        title = serializer.save()
-        title = self.get_queryset().get(pk=title.pk)
-        read_serializer = TitleReadSerializer(title)
-
-        return Response(
-            read_serializer.data,
-            status=status.HTTP_201_CREATED
-        )
-
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = TitleWriteSerializer(
-            instance,
-            data=request.data,
-            partial=partial
-        )
-        serializer.is_valid(raise_exception=True)
-        title = serializer.save()
-        title = self.get_queryset().get(pk=title.pk)
-        return Response(TitleReadSerializer(title).data)
-
-    def partial_update(self, request, *args, **kwargs):
-        kwargs['partial'] = True
-        return self.update(request, *args, **kwargs)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -193,14 +147,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
     )
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
-    def get_queryset(self):
+    def _get_title(self):
+        """Возвращает объект Title по title_id из URL."""
         title_id = self.kwargs.get('title_id')
-        title = get_object_or_404(Title, id=title_id)
+        return get_object_or_404(Title, id=title_id)
+
+    def get_queryset(self):
+        title = self._get_title()
         return title.reviews.all()
 
     def perform_create(self, serializer):
-        title_id = self.kwargs.get('title_id')
-        title = get_object_or_404(Title, id=title_id)
+        title = self._get_title()
         serializer.save(author=self.request.user, title=title)
 
 
@@ -212,14 +169,16 @@ class CommentViewSet(viewsets.ModelViewSet):
     )
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
-    def get_queryset(self):
+    def _get_review(self):
+        """Возвращает объект Review по параметрам из URL."""
         title_id = self.kwargs.get('title_id')
         review_id = self.kwargs.get('review_id')
-        review = get_object_or_404(Review, id=review_id, title_id=title_id)
+        return get_object_or_404(Review, id=review_id, title_id=title_id)
+
+    def get_queryset(self):
+        review = self._get_review()
         return review.comments.all()
 
     def perform_create(self, serializer):
-        title_id = self.kwargs.get('title_id')
-        review_id = self.kwargs.get('review_id')
-        review = get_object_or_404(Review, id=review_id, title_id=title_id)
+        review = self._get_review()
         serializer.save(author=self.request.user, review=review)

@@ -1,12 +1,17 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+from .validators import validate_year
 
 
 MAX_LENGTH = 256
 MAX_LENGTH_SLUG = 50
 NAME_LENGTH = 30
 ROLE_MAX_LENGTH = 20
+MIN_SCORE = 1
+MAX_SCORE = 10
 
 
 class User(AbstractUser):
@@ -88,7 +93,9 @@ class Title(models.Model):
         verbose_name='Описание',
         blank=True,
         default='')
-    year = models.IntegerField(verbose_name='Год выхода')
+    year = models.IntegerField(
+        verbose_name='Год выхода',
+        validators=[validate_year],)
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
@@ -110,32 +117,51 @@ class Title(models.Model):
         return self.name[:NAME_LENGTH]
 
 
-class Review(models.Model):
+class BaseContent(models.Model):
+    """Абстрактная модель для общих полей отзыва и комментария."""
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Автор',
+    )
+    text = models.TextField('Текст')
+    pub_date = models.DateTimeField(
+        'Дата публикации',
+        auto_now_add=True,
+    )
+
+    class Meta:
+        abstract = True
+
+
+class Review(BaseContent):
+    """Модель отзыва на произведение."""
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
         related_name='reviews',
-        verbose_name='Произведение'
+        verbose_name='Произведение',
     )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='reviews',
-        verbose_name='Автор'
-    )
-    text = models.TextField('Текст отзыва')
     score = models.PositiveSmallIntegerField(
         'Оценка',
-        choices=[(i, str(i)) for i in range(1, 11)]  # от 1 до 10
+        validators=[
+            MinValueValidator(
+                MIN_SCORE,
+                message=f'Оценка не может быть меньше {MIN_SCORE}.',
+            ),
+            MaxValueValidator(
+                MAX_SCORE,
+                message=f'Оценка не может быть больше {MAX_SCORE}.',
+            ),
+        ],
     )
-    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=['title', 'author'],
-                name='unique_review'
-            )
+                name='unique_review',
+            ),
         ]
         ordering = ['-pub_date']
         verbose_name = 'Отзыв'
@@ -145,21 +171,14 @@ class Review(models.Model):
         return f'{self.author} - {self.title} - {self.score}'
 
 
-class Comment(models.Model):
+class Comment(BaseContent):
+    """Модель комментария к отзыву."""
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
         related_name='comments',
-        verbose_name='Отзыв'
+        verbose_name='Отзыв',
     )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name='Автор'
-    )
-    text = models.TextField('Текст комментария')
-    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
     class Meta:
         ordering = ['pub_date']

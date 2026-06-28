@@ -1,9 +1,15 @@
 from django.conf import settings
-from django.utils import timezone
+from django.contrib.auth.tokens import default_token_generator
+from django.db.models import Avg
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
 from reviews.models import Category, Genre, Title, User, Review, Comment
 from .validators import USERNAME_REGEX, validate_username_not_me
+
+# Константы для оценки
+MIN_SCORE = 1
+MAX_SCORE = 10
 
 
 class SignUpSerializer(serializers.Serializer):
@@ -42,6 +48,18 @@ class TokenSerializer(serializers.Serializer):
     )
     confirmation_code = serializers.CharField(write_only=True)
 
+    def validate(self, data):
+        user = get_object_or_404(User, username=data['username'])
+        if not default_token_generator.check_token(
+                user,
+                data['confirmation_code']
+        ):
+            raise serializers.ValidationError(
+                {'confirmation_code': 'Неверный или просроченный код.'},
+            )
+        data['user'] = user
+        return data
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -61,7 +79,7 @@ class MeSerializer(UserSerializer):
 
 class CatGenSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = ('name', 'slug')
+        exclude = ('id',)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -97,12 +115,14 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         allow_empty=False
     )
 
-    def validate_year(self, value):
-        if value > timezone.now().year:
-            raise serializers.ValidationError(
-                'Год выпуска не может быть больше текущего.'
-            )
-        return value
+    def to_representation(self, instance):
+        instance = (
+            Title.objects
+            .filter(pk=instance.pk)
+            .annotate(rating=Avg('reviews__score'))
+            .first()
+        )
+        return TitleReadSerializer(instance, context=self.context).data
 
     class Meta:
         model = Title
@@ -121,8 +141,10 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ('author', 'pub_date')
 
     def validate_score(self, value):
-        if not (1 <= value <= 10):
-            raise serializers.ValidationError('Оценка должна быть от 1 до 10.')
+        if not (MIN_SCORE <= value <= MAX_SCORE):
+            raise serializers.ValidationError(
+                f'Оценка должна быть от {MIN_SCORE} до {MAX_SCORE}.'
+            )
         return value
 
     def validate(self, data):
@@ -130,11 +152,11 @@ class ReviewSerializer(serializers.ModelSerializer):
         if request and request.method == 'POST':
             title_id = self.context.get('view').kwargs.get('title_id')
             if Review.objects.filter(
-                author=request.user,
-                title_id=title_id
+                    author=request.user,
+                    title_id=title_id
             ).exists():
                 raise serializers.ValidationError(
-                    'Вы уже оставили отзыв.'
+                    'Вы уже оставили отзыв на это произведение.'
                 )
         return data
 
