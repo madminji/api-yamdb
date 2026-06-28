@@ -59,14 +59,7 @@ def signup(request):
 def get_token(request):
     serializer = TokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    username = serializer.validated_data['username']
-    confirmation_code = serializer.validated_data['confirmation_code']
-    user = get_object_or_404(User, username=username)
-    if not default_token_generator.check_token(user, confirmation_code):
-        return Response(
-            {'confirmation_code': 'Неверный или просроченный код.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    user = serializer.validated_data['user']
     access_token = AccessToken.for_user(user)
     return Response({'token': str(access_token)}, status=status.HTTP_200_OK)
 
