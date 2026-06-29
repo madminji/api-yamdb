@@ -14,8 +14,8 @@ from rest_framework.permissions import (
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
+from reviews.models import Category, Genre, Review, Title, User
 from .filters import TitleFilter
-from reviews.models import Category, Genre, Title, User, Review
 from .permissions import (
     IsAdmin,
     IsAdminOrReadOnly,
@@ -23,15 +23,15 @@ from .permissions import (
 )
 from .serializers import (
     CategorySerializer,
+    CommentSerializer,
     GenreSerializer,
     MeSerializer,
+    ReviewSerializer,
     SignUpSerializer,
-    TitleWriteSerializer,
     TitleReadSerializer,
+    TitleWriteSerializer,
     TokenSerializer,
     UserSerializer,
-    ReviewSerializer,
-    CommentSerializer,
 )
 
 
@@ -123,15 +123,11 @@ class GenreViewSet(CatGenViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
+    queryset = Title.objects.annotate(rating=Avg('reviews__score'))
     filter_backends = [DjangoFilterBackend]
     filterset_class = TitleFilter
     permission_classes = [IsAdminOrReadOnly]
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
-
-    def get_queryset(self):
-        queryset = Title.objects.annotate(rating=Avg('reviews__score'))
-        return queryset
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
